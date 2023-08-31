@@ -28,7 +28,7 @@ random_combs <- function(n,k,nr){
 }
 
 degree <- function(poly) {
-    degrees_monomials <- sapply(poly, function(mon) nrow(mon[["moms"]]))
+    degrees_monomials <- sapply(poly, function(mon) length(mon[["moms"]]))
     return(max(degrees_monomials))
 }
 
@@ -86,7 +86,7 @@ indep_stat <- function(X, equality_constraints=list(), ineq_constraints=list(), 
 ############
 
 #' @export
-incomplete_U_stat <- function(X, equality_constraints=list(), ineq_constraints=list(), E=1000, n1=min(nrow(X),500), N=2*nrow(X)){
+incomplete_U_stat <- function(X, equality_constraints=list(), ineq_constraints=list(), combine=c("and", "or"), E=1000, n1=min(nrow(X),500), N=2*nrow(X)){
   n <- nrow(X)
   all_constraints <- append(equality_constraints, ineq_constraints)
   nr_constraints <- length(all_constraints)

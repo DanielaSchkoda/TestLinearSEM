@@ -10,11 +10,12 @@
 #' to an independent sample of the distribution of X.
 #' 
 #' @export
-generate_data = function(n, p, noise_distr, scenario = c("H_0", "alt_cos", "alt_quadr", "alt_confounding"), delta = NULL) {
+generate_data = function(n, p, noise_distr, scenario = c("H_0", "alt_cos", "alt_quadr", "alt_confounding", "latent_conf"), delta = NULL, number_confounders = NULL) {
   scenario <- match.arg(scenario)
   if ((scenario %in% c("alt_cos", "alt_quadr", "alt_confounding")) & is.null(delta)) {
-    stop("for alt_cos, alt_quadr, and alt_confounding delta has to be specified")
+    stop("For alt_cos, alt_quadr, and alt_confounding delta has to be specified")
   }
+  if (scenario == "latent_conf" && is.null(number_confounders)) stop("For latent_conf, number_confounders has to be specified")
   
   eps <- calculate_eps(n, p, noise_distr)
   B <- matrix(runif(p^2, -1, 1), nrow = p)
@@ -30,10 +31,14 @@ generate_data = function(n, p, noise_distr, scenario = c("H_0", "alt_cos", "alt_
       data[,2] <- sapply(eps[,1], function(x) delta * x^2 + x) + eps[,2]
       data
     } else if (scenario == "alt_confounding") {
-      Z = calculate_eps(n, 1, noise_distr)
-      Z_copied = do.call(cbind, replicate(p, Z, simplify=FALSE))
+      L = calculate_eps(n, 1, noise_distr)
+      L_copied = do.call(cbind, replicate(p, L, simplify=FALSE))
       eps %*% solve(B) + delta * Z_copied
-    }
+    } else if (scenario == "latent_conf") {
+      Gamma <- matrix(runif(p*number_confounders, -1, 1), nrow = number_confounders)
+      L = calculate_eps(n, number_confounders, noise_distr)
+      (eps + L %*% Gamma) %*% solve(B)
+    } 
   return(data)
 }
 

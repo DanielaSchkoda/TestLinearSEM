@@ -118,7 +118,7 @@ class Polynomial {
 // as the C++ functions should be invoked from R code, where the C++ object "Polynomial" does
 // not exist. The argument R_poly needs to be a list of monomials where each monomial is 
 // a vector of the form c(coef=1, moms=matrix(c(1, 2, 1), 1, 3))
-// moms needs to have 3 columns. Each row represents one
+// moms needs to have k columns. Each row represents one
 // second respectively third moment appearing in the monomial. For second moments, the *last* entry in the row needs to be 0.
 Polynomial create_c_polynomial(List R_poly){
   vector<Monomial> C_monomials;
