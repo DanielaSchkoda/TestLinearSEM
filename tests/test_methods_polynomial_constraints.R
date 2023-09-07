@@ -7,19 +7,21 @@ test_that("U stat estimates correctly", {
   n = 100
   n_sim = 100
   
+  # Sample from two independent standard normal variables
   X = cbind(rnorm(n, 0, 1), rnorm(n, 0, 1))
   
+  # Inequality -m11*m22 <= 0 is satisfied. (m11 = m22 = 1 for infinite sample size)
   ineq_satisfied = list(
-    list(coef=-1, moms=matrix(c(1,1,0, 2,2,0), ncol=3, byrow=TRUE))
+    list(coef=-1, moms=list(c(1,1), c(2,2)))
   )
   ineq_not_satisfied = list(
-    list(coef=1, moms=matrix(c(1,1,0, 2,2,0), ncol=3, byrow=TRUE))
+    list(coef=1, moms=list(c(1,1), c(2,2)))
   )
   eq_satisfied = list(
-    list(coef=1, moms=matrix(c(1,2,0, 1,1,0), ncol=3, byrow=TRUE))
+    list(coef=1, moms=list(c(1,2), c(1,1)))
   )
   eq_not_satisfied = list(
-    list(coef=-1, moms=matrix(c(1,1,0, 2,2,0), ncol=3, byrow=TRUE))
+    list(coef=-1, moms=list(c(1,1), c(2,2)))
   )
   
   # Test should accept for ineq_satisfied

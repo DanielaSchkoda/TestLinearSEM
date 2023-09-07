@@ -37,7 +37,7 @@ degree <- function(poly) {
 ###########
 
 #' @export
-indep_stat <- function(X, equality_constraints=list(), ineq_constraints=list(), E=1000){
+indep_stat <- function(X, equality_constraints=list(), ineq_constraints=list(), combine="and", E=1000){
     all_constraints <- append(equality_constraints, ineq_constraints)
     nr_eqs = length(equality_constraints)
     nr_constraints <- length(all_constraints)
@@ -61,7 +61,7 @@ indep_stat <- function(X, equality_constraints=list(), ineq_constraints=list(), 
     # Test statistic
     marginal_stats <- studentizer * sqrt(n) * H_mean
     marginal_stats[1:nr_eqs] <- abs(marginal_stats[1:nr_eqs])
-    test_stat <-  max(marginal_stats)
+    test_stat <-if (combine=="and") max(marginal_stats) else if (combine=="or") min(marginal_stats)
     
     # Bootstrapping 
     W <- matrix(0, E, nr_constraints)
@@ -86,14 +86,16 @@ indep_stat <- function(X, equality_constraints=list(), ineq_constraints=list(), 
 ############
 
 #' @export
-incomplete_U_stat <- function(X, equality_constraints=list(), ineq_constraints=list(), combine=c("and", "or"), E=1000, n1=min(nrow(X),500), N=2*nrow(X)){
+incomplete_U_stat <- function(X, equality_constraints=list(), ineq_constraints=list(), combine="and", E=1000, n1=min(nrow(X),500), N=2*nrow(X)){
   n <- nrow(X)
   all_constraints <- append(equality_constraints, ineq_constraints)
   nr_constraints <- length(all_constraints)
   nr_eqs <- length(equality_constraints)
   order_kernel <- max(sapply(all_constraints, degree))
   N <- min(0.7*choose(n,order_kernel), N)
-
+  
+  if (combine == "or" && nr_eqs > 0) stop("Or combination is only implemented for inequality constraints")
+    
   # Determine N_hat by Bernoulli sampling
   N_hat <- stats::rbinom(1, choose(n,order_kernel), (N / choose(n,order_kernel)))
 
@@ -121,33 +123,58 @@ incomplete_U_stat <- function(X, equality_constraints=list(), ineq_constraints=l
 
   # Test statistic
   marginal_stats <- sqrt(n) * H_mean
+  
   # Take absolute values for equality constraints
   if (nr_eqs > 0) marginal_stats[1:nr_eqs] <- abs(marginal_stats[1:nr_eqs])
-  # studentizing
-  test_stat <-  max(studentizer * marginal_stats)
 
-  # Bootstrap
-  U_B <- matrix(0, E, nr_constraints)
-  for (i in 1:E){
-    epsilons <- rnorm(N_hat,0,1)
-    for (j in 1:nr_constraints){
+  if (combine=="and") {
+    test_stat <- max(studentizer * marginal_stats)
+    
+    # Bootstrap
+    U_B <- matrix(0, E, nr_constraints)
+    for (i in 1:E){
+      epsilons <- rnorm(N_hat,0,1)
+      for (j in 1:nr_constraints){
         U_B[i,j] <- 1/sqrt(N_hat) * sum(H_centered[,j] * epsilons)
+      }
     }
-  }
-  U_A <- matrix(0, E, nr_constraints)
-  for (i in 1:E){
-    epsilons <- rnorm(n1,0,1)
-    for (j in 1:nr_constraints){
+    U_A <- matrix(0, E, nr_constraints)
+    for (i in 1:E){
+      epsilons <- rnorm(n1,0,1)
+      for (j in 1:nr_constraints){
         U_A[i,j] <- 1/sqrt(n1) * sum(G_centered[,j] * epsilons)
+      }
     }
-  }
-  U <- order_kernel * U_A + sqrt(n/N) * U_B
-  # Take absolute values for equality constraints
-  if (nr_eqs > 0) U[,1:nr_eqs] <- abs(U[,1:nr_eqs]) 
-  # studentizing
-  U_studentized <- t(t(U) * studentizer)
-  results <- Rfast::rowMaxs(U_studentized, value = TRUE)
+    U <- order_kernel * U_A + sqrt(n/N) * U_B
+    # Take absolute values for equality constraints
+    if (nr_eqs > 0) U[,1:nr_eqs] <- abs(U[,1:nr_eqs]) 
+    # studentizing
+    U_studentized <- t(t(U) * studentizer)
+    results <- Rfast::rowMaxs(U_studentized, value = TRUE)
 
+    # For or, just consider the polynomial which was estimated to have the lowest value
+  } else if (combine=="or") {
+    stats_studentized <- studentizer * marginal_stats
+    min_index <- which.min(stats_studentized)
+    test_stat <- stats_studentized[min_index]
+    
+    # Bootstrap
+    U_B <- matrix(0, E, 1)
+    for (i in 1:E){
+      epsilons <- rnorm(N_hat,0,1)
+        U_B[i,1] <- 1/sqrt(N_hat) * sum(H_centered[,min_index] * epsilons)
+    }
+    U_A <- matrix(0, E, 1)
+    for (i in 1:E){
+      epsilons <- rnorm(n1,0,1)
+        U_A[i,1] <- 1/sqrt(n1) * sum(G_centered[,min_index] * epsilons)
+    }
+    U <- order_kernel * U_A + sqrt(n/N) * U_B
+    
+    # studentizing
+    results <- U * studentizer[min_index]
+  }
+  
   # pval
   pval <- (1 + sum(results >= test_stat)) / (1+E)
 

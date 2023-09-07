@@ -61,7 +61,7 @@ double estimate_polynomial(List poly, NumericMatrix L){
   double poly_est = 0;
   for(int i=0; i < poly.size(); i++){ 
     List current_mon = as<List>(poly[i]);
-    double monomial_est = current_mon["coeff"];
+    double monomial_est = current_mon["coef"];
     List moms = current_mon["moms"];
     int m_deg = 0;
     for(int j=0; j < moms.size(); j++){

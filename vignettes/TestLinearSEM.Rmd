@@ -1,0 +1,140 @@
+---
+title: "Test Linear SEM"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{TestLinearSEM}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(wrapr)
+library(MASS)
+library(Rcpp)
+source("../R/CRT_statistic.R")
+sourceCpp("../src/CRT_statistic.cpp")
+source("../R/constraints_to_test.R")
+source("../R/generate_data.R")
+source("../R/methods_polynomial_constraints.R")
+source("../R/dCovICA.R")
+sourceCpp("../src/methods_polynomial_constraints.cpp")
+
+# library(TestLinearSEM)
+```
+
+The package `TestLinearSEM` provides all the statistical tests that are used in the paper to test the null hypothesis if a distribution follows a linear structural equation model. For the details of the tests, see the paper. Here, you can find examples for using this package to apply the tests.
+
+## Two nodes
+
+1.  Generate data\
+    First, we simulate data to fulfill the null hypothesis with number of nodes `p=2` and sample size `n=1000`.
+
+```{r}
+p <- 2 
+l <- 0
+n <- 100
+data <- generate_data(n, p, l, "gamma", "H_0")
+```
+
+2.  Define constraints to test\
+    Next, we define the matrix $M^{(3)}$ and the polynomial $\text{Str}$. Furthermore, we need all size $p+1$ minors of $M^{(3)}$.
+
+```{r}
+M <- construct_M(p, 3)
+all_minors_M <-  calculate_minors(M, p+1) 
+```
+
+```{r}
+strassen_ineq
+```
+
+3.  Statistical tests\
+    CRT statistic:
+
+```{r}
+CRT(data, M, p)$PVAL
+```
+
+Incomplete $U$-statistic:
+
+```{r}
+incomplete_U_stat(data, equality_constraints = all_minors_M, ineq_constraints = list(strassen_ineq))$PVAL
+```
+
+Independent statistic:
+
+```{r}
+indep_stat(data, equality_constraints = all_minors_M, ineq_constraints = list(strassen_ineq))$PVAL
+```
+
+Combination of incomplete $U$-statistic and CRT statistic:
+
+```{r}
+combine_pvalues = function(pval1, pval2) min(2*pval1, 2*pval2)
+
+combine_pvalues(
+      incomplete_U_stat(data, ineq_constraints = list(strassen_ineq))$PVAL,
+      CRT(data, M, p)$PVAL)
+```
+
+Matteson-Tsay test:
+
+```{r}
+dCovICA(data)$PVAL
+```
+
+4.  Alternatives\
+    The package also provides functionality to simulate data according to the alternatives presented in the Section 5 of the paper, namely the non-linear alternative and the latent confounding scenario:
+
+```{r}
+data <- generate_data(n, p, l, "gamma", "alt_cos", delta = 0.1)
+data <- generate_data(n, p, l, "gamma", "alt_conf", delta = 0.1)
+```
+
+## Three nodes
+
+```{r}
+p <- 3
+n <- 100
+M <- construct_M(p, 3)
+
+data <- generate_data(n, p, l, "gamma", "H_0")
+
+CRT(data, M, p)$PVAL
+```
+
+```{r}
+indep_stat(data, equality_constraints = append(all_minors_M, list(Aronhold_invariant)))$PVAL
+```
+
+```{r}
+combine_pvalues(
+  incomplete_U_stat(data, equality_constraints = list(Aronhold_invariant))$PVAL,
+  CRT(data, M, p)$PVAL)
+```
+
+```{r}
+dCovICA(data)$PVAL
+```
+
+## More nodes
+
+```{r}
+p <- 4
+n <- 100
+M <- construct_M(p, 3)
+A_T <- construct_A_T(p)
+a <- floor((p-1)/2)
+rank_A_T <- p * choose(p-1, a)
+
+data <- generate_data(n, p, l, "gamma", "H_0")
+
+combine_pvalues(CRT(data, M, p)$PVAL, CRT(data, A_T, rank_A_T)$PVAL)
+```

@@ -1,5 +1,5 @@
 #' @export
-CRT <- function(X, Pi, r, upper_bound_s=Inf, use_delta_method=FALSE, J=NULL, moment_expressions=NULL) {
+CRT <- function(X, Pi, r, upper_bound_s=Inf, use_delta_method=TRUE, J=NULL, moment_expressions=NULL) {
   n <- nrow(X)
   
   if (use_delta_method) {
@@ -8,7 +8,7 @@ CRT <- function(X, Pi, r, upper_bound_s=Inf, use_delta_method=FALSE, J=NULL, mom
       W <- W
     )
   } else {
-    Pi_hat <- estimate_Pi(Pi, X)
+    Pi_hat <- estimate_Pi(apply(Pi, 2, as.list), X)
     Pi_vectorized <- unlist(Pi, recursive = FALSE)
     W <- estimate_W(Pi_vectorized, X)
   }
@@ -37,27 +37,32 @@ CRT <- function(X, Pi, r, upper_bound_s=Inf, use_delta_method=FALSE, J=NULL, mom
   return(list("PVAL" = pval, "TSTAT" = CRT, "estimated_Pi" = Pi_hat, "estimated_W" = W))
 }
 
-#' @export
-delta_method <- function(M_in_terms_of_moments, X, J, moment_expressions) {
+#' @export 
+delta_method <- function(M, X, J, moment_expressions) { 
   # Estimate all moments up to order four and their covariances.
   p <- ncol(X)
   # First we specify the formulas for the cumulants in terms of the moments
   #M_in_terms_of_moments <- apply(M, c(1,2), function(entry) if (grepl("c", entry)) get_cumulant_formula(entry) else as.character(entry))
   
+  if (is.null(moment_expressions)) {
+    occuring_orders <- unique(c(apply(M, c(1,2), function(entry)
+      if (grepl("m", entry)) nchar(sub('.*m', '', entry))
+      else 0
+    )))
+    moment_expressions <- list_of_moments(occuring_orders, p)
+  }
+  
+  if (is.null(J)) {
+    J <- calculus::jacobian(c(M), var = names(moment_expressions))
+  }
   # Estimate M 
-  # occuring_orders <- unique(c(apply(M_in_terms_of_moments, c(1,2), function(entry)
-  #   if (grepl("m", entry)) nchar(sub('.*m', '', entry))
-  #   else 0
-  # )))
-  # moment_expressions <- list_of_moments(occuring_orders, p) 
   estimated_moments <- c(estimate_Pi(list(moment_expressions), X))
   names(estimated_moments) <- names(moment_expressions)
-  M_hat <- calculus::evaluate(M_in_terms_of_moments, estimated_moments)
+  M_hat <- calculus::evaluate(M, estimated_moments)
   
   # Estimate W
   Sigma_moments <- estimate_W(moment_expressions, X)
-  #J <- jacobian(c(M_in_terms_of_moments), var = names(moment_expressions))
-  Jacobian <- calculus::evaluate(J, estimated_moments)
+  Jacobian <- calculus::evaluate(J, estimated_moments) 
   W <- Jacobian %*% Sigma_moments %*% t(Jacobian)
   return(list(M_hat=M_hat, W=W))
 }

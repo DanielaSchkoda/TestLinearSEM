@@ -13,12 +13,8 @@ test_that("Matrix is estimated correctly", {
                  mu = c(0,0,0), 
                  Sigma = diag(x = c(1,2,0.5), nrow = 3, ncol = 3))
     # Pi with true rank 2
-    Pi <- matrix(list(list(mom=c(1), coeff=1), list(mom=c(2), coeff=1), list(mom=c(3), coeff=1),
-                      list(mom=c(1,1), coeff=1), list(mom=c(1,2), coeff=1), list(mom=c(1,3), coeff=1),
-                      list(mom=c(2,2), coeff=1), list(mom=c(2,3), coeff=1), list(mom=c(3,3), coeff=1)), 
-                 nrow=3)
-    Pi <- as.list(as.data.frame(Pi))
-    
+    Pi <- matrix(c("m1", "m2", "m3", "m11", "m12", "m13", "m22", "m23", "m33"), nrow=3)
+
     Pi_hat <- CRT(X, Pi, 2)$estimated_Pi
     Pi_expected <- matrix(c(0, 0, 0, 1, 0, 0, 2, 0, 0.5), nrow = 3)
     tolerance <- 1e-2
@@ -31,12 +27,8 @@ test_that("Matrix with coefficients is estimated correctly", {
                mu = c(0,0,0), 
                Sigma = diag(x = c(1,2,0.5), nrow = 3, ncol = 3))
   # Pi with true rank 2
-  Pi <- matrix(list(list(mom=c(1), coeff=1), list(mom=c(2), coeff=1), list(mom=c(3), coeff=1),
-                    list(mom=c(1,1), coeff=-1), list(mom=c(1,2), coeff=1), list(mom=c(1,3), coeff=1),
-                    list(mom=c(2,2), coeff=1), list(mom=c(2,3), coeff=1), list(mom=c(3,3), coeff=1)), 
-               nrow=3)
-  Pi <- as.list(as.data.frame(Pi))
-  
+  Pi <- matrix(c("m1", "m2", "m3", "-m11", "m12", "m13", "m22", "m23", "m33"), nrow=3)
+
   Pi_hat <- CRT(X, Pi, 2)$estimated_Pi
   Pi_expected <- matrix(c(0, 0, 0, -1, 0, 0, 2, 0, 0.5), nrow = 3)
   tolerance <- 1e-2
@@ -47,12 +39,8 @@ test_that("Rank is estimated correctly by RS test", {
   n_simulations <- 100
   n <- 1000
   # Pi with true rank 2
-  Pi <- matrix(list(list(mom=c(1), coeff=1), list(mom=c(2), coeff=1), list(mom=c(3), coeff=1),
-                    list(mom=c(1,1), coeff=-1), list(mom=c(1,2), coeff=1), list(mom=c(1,3), coeff=1),
-                    list(mom=c(2,2), coeff=1), list(mom=c(2,3), coeff=1), list(mom=c(3,3), coeff=1)), 
-               nrow=3)
-  Pi <- as.list(as.data.frame(Pi))
-  
+  Pi <- matrix(c("m1", "m2", "m3", "m11", "m12", "m13", "m22", "m23", "m33"), nrow=3)
+
   # Test if test accepts most of the time when testing for rank = 2
   p_values <- rep(0, 100)
   for (sim in 1:100) {
