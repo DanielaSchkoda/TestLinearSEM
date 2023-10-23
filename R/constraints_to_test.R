@@ -3,45 +3,65 @@
 #' Constructs matrix M
 #' 
 #' @param p Integer, number of nodes.
-#' @param k Integer, order of highest cumulants to include.
+#' @param orders List of integers, orders of cumulants to include.
 #' 
-#' @return Matrix M containing the second moments in the first and the third moments in 
+#' @return Matrix M containing the cumulants of the lowest order in the first and the reamaining cumulants in 
 #' the remaining rows. 
 #' 
 #' @export
-construct_M <- function(p, k = c(3, 4)) {
-  column_indices <- gtools::combinations(p, 2, 1:p, repeats.allowed = TRUE)
+construct_M <- function(p, orders) {
+  first_order <- orders[1]
+  remaining_orders <- orders[2:length(orders)]
+  # Columns are indexed by  moments of the first_order
+  column_indices <- gtools::combinations(p, first_order, 1:p, repeats.allowed = TRUE)
   column_indices <- lapply(split(column_indices, seq(nrow(column_indices))), function(ind) unlist(ind, use.names = FALSE))
-  
-  M <- matrix("", nrow = 1 + p, ncol = length(column_indices))
-  for (i in 1:nrow(M)) {
-    for (j in 1:length((column_indices))) {
-      if (i == 1) {
-        M[[i, j]] <- paste(c("m", column_indices[[j]]), collapse = "")
-      } else {
-        M[[i, j]] <- paste0(c("m", sort(c(column_indices[[j]], i-1))), collapse = "")
-      }
-    } 
+  # First row consists of moments of the first_order
+  row_indices <- list(numeric(0))
+  # Remaining orders are arranged underneath
+  for (order in remaining_orders) {
+    additional_row_indices <- gtools::combinations(p, order - first_order, 1:p, repeats.allowed = TRUE)
+    additional_row_indices <- lapply(split(additional_row_indices, seq(nrow(additional_row_indices))), function(ind) unlist(ind, use.names = FALSE))
+    row_indices <- append(row_indices, additional_row_indices)
   }
   
-  # For order four, one row for each tuple i_1<=i_2 needs to be appended to M
-  if (k==4) {
-    order_four_part <- matrix("", nrow = length(column_indices), ncol = length(column_indices))
-    for (row in 1:length(column_indices)) {
-      for (col in 1:length(column_indices)) {
-        order_four_part[[row, col]] <- paste0(c("c", sort(c(column_indices[[row]], column_indices[[col]]))), collapse = "")
-      }
-    }
-    
-    M <- rbind(M, order_four_part)
+  M <- matrix("", nrow = length(row_indices), ncol = length(column_indices))
+  for (i in 1:length(row_indices)) {
+    for (j in 1:length(column_indices)) {
+      indices <- sort(c(row_indices[[i]], column_indices[[j]]))
+      M[[i, j]] <- get_cumulant_formula(indices)
+    } 
   }
   
   return(M)
 }
 
-# Generate all minors of a specific size of a matrix
+#' Constructs (k/2)th flattening matrix of a tensor in (\mathbb{R}^p)^{\otimes k}.
 #' 
-#' @param A A matrix, whose minors to compute. The format of the entries of the matrix needs to be "m122"
+#' @param p Integer, number of nodes.
+#' @param k Integer, order of tensor.
+#' 
+#' @return Matrix fl. 
+#' 
+#' @export
+construct_flattening_matrix <- function(p, k) {
+  if ((p != 2 || k != 6) && (p != 3 || k != 4)) stop("Not implemented for values other than p = 2 and k = 6, or p = 3 and k = 4") 
+  
+  s <- floor(k/2)
+  indices <- gtools::combinations(p, s, 1:p, repeats.allowed = TRUE)
+  indices <- lapply(split(indices, seq(nrow(indices))), function(ind) unlist(ind, use.names = FALSE))
+  fl <- matrix(NA, length(indices), length(indices))
+  
+  for (i in 1:length(indices)) {
+    for (j in 1:length(indices)) {
+      fl[i, j] <- get_cumulant_formula(sort(c(indices[[i]], indices[[j]])))
+    }
+  }
+  return(fl)
+}
+
+# Calculate all minors of a specific size of a matrix
+#' 
+#' @param A A matrix, whose minors to compute. The format of the entries of the matrix needs to be "m1_2_2"
 #' @param size size of the minors
 #' 
 #' @return List \code{all_minors} where each entry corresponds to one polynomial
@@ -71,10 +91,11 @@ calculate_determinant <- function(A) {
     moms <- list()
     for (i in 1:n) {
       curr_moment <- A[[i, as.function(perm)(i)]]
-      # A[[i, as.function(perm)(i)]] contains moment in format m122. Here, a vector is needed
-      mom_indices <- strsplit(curr_moment, "")[[1]]
-      # Remove "m"
-      mom_indices <- mom_indices[2:length(mom_indices)]
+      # A[[i, as.function(perm)(i)]] contains moment in format m1_2_2. Here, a vector is needed. 
+      # Remove m
+      curr_moment <- substr(curr_moment, 2, nchar((curr_moment)))
+      # Remove commata
+      mom_indices <- strsplit(curr_moment, "_")[[1]]
       mom_indices <- as.integer(mom_indices)
       moms[[i]] <- mom_indices
     }
@@ -87,7 +108,7 @@ calculate_determinant <- function(A) {
 # p = 2
 # - Strassen inequality since U-stat tests for ineq <= 0.
 # A polynomial is represented as list of lists, where each inner list represents one summand of the ploynomial.
-# The entry "mom" is a matrix where each row corresponds to one factor and contains all the indices of the 
+# The entry "moms" is a list where each entry corresponds to one factor and contains all the indices of the 
 # respective moment.
 strassen_ineq <- list(
   list(coef=-1, moms = list(c(1, 1, 1), c(1, 1, 1), c(2, 2, 2), c(2, 2, 2))), 
@@ -127,52 +148,26 @@ Aronhold_invariant <- list(
   list(coef=-3, moms = list(c(1, 1, 3), c(1, 2, 2), c(1, 2, 3), c(2, 3, 3)))
 )
 
-
-
-# p = 2, l = 1
-disc <- list(
-  list(coef=1, moms = list(c(1, 1, 1, 1), c(1, 1, 1, 1), c(1, 1, 1, 1), c(2, 2, 2, 2), c(2, 2, 2, 2), c(2, 2, 2, 2))), 
-  list(coef=-64, moms = list(c(1, 1, 1, 2), c(1, 1, 1, 2), c(1, 1, 1, 2), c(1, 2, 2, 2), c(1, 2, 2, 2), c(1, 2, 2, 2))), 
-  list(coef=-27, moms = list(c(1, 1, 1, 1), c(1, 1, 1, 1), c(1, 2, 2, 2), c(1, 2, 2, 2), c(1, 2, 2, 2), c(1, 2, 2, 2))), 
-  list(coef=-27, moms = list(c(1, 1, 1, 2), c(1, 1, 1, 2), c(1, 1, 1, 2), c(1, 1, 1, 2), c(2, 2, 2, 2), c(2, 2, 2, 2))), 
-  list(coef=-54, moms = list(c(1, 1, 1, 1), c(1, 1, 2, 2), c(1, 1, 2, 2), c(1, 1, 2, 2), c(1, 2, 2, 2), c(1, 2, 2, 2))), 
-  list(coef=-54, moms = list(c(2, 2, 2, 2), c(1, 1, 1, 2), c(1, 1, 1, 2), c(1, 1, 2, 2), c(1, 1, 2, 2), c(1, 1, 2, 2))), 
-  list(coef=-18, moms = list(c(1, 1, 1, 1), c(1, 1, 1, 1), c(1, 1, 2, 2), c(1, 1, 2, 2), c(2, 2, 2, 2), c(2, 2, 2, 2))), 
-  list(coef=36, moms = list(c(1, 1, 1, 2), c(1, 1, 1, 2), c(1, 1, 2, 2), c(1, 1, 2, 2), c(1, 2, 2, 2), c(1, 2, 2, 2))), 
-  list(coef=81, moms = list(c(1, 1, 1, 1), c(2, 2, 2, 2), c(1, 1, 2, 2), c(1, 1, 2, 2), c(1, 1, 2, 2), c(1, 1, 2, 2))), 
-  list(coef=-12, moms = list(c(1, 1, 1, 2), c(1, 2, 2, 2), c(1, 1, 1, 1), c(1, 1, 1, 1), c(2, 2, 2, 2), c(2, 2, 2, 2))), 
-  list(coef=-6, moms = list(c(1, 1, 1, 1), c(2, 2, 2, 2), c(1, 1, 1, 2), c(1, 1, 1, 2), c(1, 2, 2, 2), c(1, 2, 2, 2))), 
-  list(coef=54, moms = list(c(1, 1, 1, 1), c(1, 1, 2, 2), c(1, 1, 1, 2), c(1, 1, 1, 2), c(2, 2, 2, 2), c(2, 2, 2, 2))), 
-  list(coef=54, moms = list(c(1, 1, 2, 2), c(2, 2, 2, 2), c(1, 1, 1, 1), c(1, 1, 1, 1), c(1, 2, 2, 2), c(1, 2, 2, 2))), 
-  list(coef=108, moms = list(c(1, 1, 1, 1), c(1, 1, 1, 2), c(1, 1, 2, 2), c(1, 2, 2, 2), c(1, 2, 2, 2), c(1, 2, 2, 2))), 
-  list(coef=108, moms = list(c(1, 1, 2, 2), c(1, 2, 2, 2), c(2, 2, 2, 2), c(1, 1, 1, 2), c(1, 1, 1, 2), c(1, 1, 1, 2))), 
-  list(coef=-180, moms = list(c(1, 1, 1, 1), c(1, 1, 1, 2), c(1, 2, 2, 2), c(2, 2, 2, 2), c(1, 1, 2, 2), c(1, 1, 2, 2)))
-)
-
-P <- list(
-  list(coef=1, moms = list(c(1, 1, 1, 2), c(1, 1, 1, 2))), 
-  list(coef=-1, moms = list(c(1, 1, 1, 1), c(1, 1, 2, 2)))
-)
-
-D <- list(
-  list(coef=12, moms = list(c(1, 1, 1, 2), c(1, 1, 1, 2), c(1, 1, 1, 2), c(1, 1, 1, 2))), 
-  list(coef=-1, moms = list(c(2, 2, 2, 2), c(1, 1, 1, 1), c(1, 1, 1, 1), c(1, 1, 1, 1))), 
-  list(coef=9, moms = list(c(1, 1, 1, 1), c(1, 1, 1, 1), c(1, 1, 2, 2), c(1, 1, 2, 2))), 
-  list(coef=-24, moms = list(c(1, 1, 1, 1), c(1, 1, 2, 2), c(1, 1, 1, 2), c(1, 1, 1, 2))), 
-  list(coef=4, moms = list(c(1, 1, 1, 2), c(1, 2, 2, 2), c(1, 1, 1, 1), c(1, 1, 1, 1)))
-)
-
-
 # larger p
-construct_A_T <- function(p) {
+
+#' Constructs Young flattening Y_T
+#' 
+#' @param p Integer, number of nodes.
+#' @param k Integer, order of the tensor.
+#' 
+#' @return Young flattening Y_T as matrix.
+#' 
+#' @export
+construct_Y_T <- function(p, k) {
   # Return A_T in basis representation for image space basis e_1 x e_1, e_1 x e_2, ...
   # and def space basis e_1 x (e_1 ^ e_2), ..., e_1 x (e_1 ^ e_a), e_1 x (e_2 ^ e_3), ...
   
-  calculate_entry_A_T <- function(e_im, e_def) {
-    i_0 <- e_im[1]
-    j_0 <- e_def[1]
-    i_1_to_end <- e_im[-1]
-    j_1_to_end <- e_def[-1]
+  calculate_entry_Y_T <- function(e_im, e_def, k) {
+    cutoff <- if (k==3) 1 else 2 
+    i_0 <- e_im[1:cutoff]
+    j_0 <- e_def[1:cutoff]
+    i_1_to_end <- e_im[-(1:cutoff)]
+    j_1_to_end <- e_def[-(1:cutoff)]
     if (all(i_1_to_end %in% j_1_to_end)) {
       differing_elem <- setdiff(j_1_to_end, i_1_to_end)
       
@@ -180,7 +175,7 @@ construct_A_T <- function(p) {
       # as they are both sorted. E.g. if it's the penultimate elem -> sign = -1,
       # third last -> sign = 1 and so on
       sgn <- (-1) ^ (length(j_1_to_end) - which(j_1_to_end==differing_elem))
-      return(paste0(c(sgn, " * m", sort(c(j_0, i_0, differing_elem))), collapse = ""))
+      return(paste0(sgn, " * (", get_cumulant_formula(sort(c(j_0, i_0, differing_elem))), ")"))
     } else {
       return("0")
     }
@@ -188,26 +183,53 @@ construct_A_T <- function(p) {
   
   a <- floor((p-1)/2)
   
-  basis_Lambda_a <- gtools::combinations(p, a, repeats.allowed=F)
-  basis_im_space <- cbind(rep(1:p, each = nrow(basis_Lambda_a)), do.call(rbind, replicate(p, basis_Lambda_a, simplify=FALSE)))
-  basis_im_space <- apply(basis_im_space, 1, unlist, simplify = FALSE)
+  basis_Lambda_a <- apply(gtools::combinations(p, a, repeats.allowed=FALSE), 1, unlist, simplify = FALSE)
+  basis_Lambda_a_plus_1 <- apply(gtools::combinations(p, a+1, repeats.allowed=FALSE), 1, unlist, simplify = FALSE)
   
-  basis_Lambda_a_plus_1 <- gtools::combinations(p, a+1, repeats.allowed=F)
-  basis_def_space <- cbind(rep(1:p, each = nrow(basis_Lambda_a_plus_1)), do.call(rbind, replicate(p, basis_Lambda_a_plus_1, simplify=FALSE)))
-  basis_def_space <- apply(basis_def_space, 1, unlist, simplify = FALSE)
-  
-  A_T <- matrix("", length(basis_im_space), length(basis_def_space))
+  if (k==3) {
+    basis_im_space <- apply(expand.grid(1:p, basis_Lambda_a), 1, function(row) unlist(row, use.names = FALSE), simplify = FALSE)
+    basis_def_space <- apply(expand.grid(1:p, basis_Lambda_a_plus_1), 1, function(row) unlist(row, use.names = FALSE), simplify = FALSE)
+  } else if (k==5) {
+    basis_S_2 <- apply(gtools::combinations(p, 2, 1:p, repeats.allowed = TRUE), 1, unlist, simplify = FALSE)
+    basis_im_space <- apply(expand.grid(basis_S_2, basis_Lambda_a), 1, function(row) unlist(row, use.names = FALSE), simplify = FALSE)
+    basis_def_space <- apply(expand.grid(basis_S_2, basis_Lambda_a_plus_1), 1, function(row) unlist(row, use.names = FALSE), simplify = FALSE)
+  } else {
+    stop("Only implemented for k=3, 5")
+  }
+
+  Y_T <- matrix("", length(basis_im_space), length(basis_def_space))
   for (i in seq_along(basis_im_space)) {
     for (j in seq_along(basis_def_space)) {
-      A_T[[i, j]] <- calculate_entry_A_T(basis_im_space[[i]], basis_def_space[[j]])
+      Y_T[[i, j]] <- calculate_entry_Y_T(basis_im_space[[i]], basis_def_space[[j]], k)
     }
   }
   
-  return(A_T) 
+  return(Y_T) 
 }
 
-# Returns the formula of a cumulant in terms of moments. E.g. for the input "c1134", it returns "m1134 - m11 * m34 - m13 * m14 - m14 * m13".
-get_cumulant_formula <- function(cum_expr) {
-  indices <- unlist(strsplit(substring(cum_expr, 2, 5), split=""))
-  paste0(c("m", indices, " - m", indices[c(1,2)], " * m", indices[c(3,4)], " - m", indices[c(1,3)], " * m", indices[c(2,4)], " - m", indices[c(1,4)], " * m", indices[c(2,3)]), collapse = "")
-}
+# Returns the formula of a cumulant with indices \code{ind} in terms of moments. E.g. for the input c(1,2,3,4), it returns "m1_2_3_4 - m1_2 * m3_4 - m1_3 * m2_4 - m1_4 * m2_3".
+get_cumulant_formula <- function(ind) {
+  k <- length(ind)
+  if (k <= 3) {
+    result <- paste0("m", paste0(ind, collapse="_"))
+  }
+  else if (k == 4) {
+    result <- paste0("m", paste0(ind, collapse="_"), " - m", paste0(ind[c(1,2)], collapse="_"), " * m", paste0(ind[c(3,4)], collapse="_"), " - m", paste0(ind[c(1,3)], collapse="_"), " * m", paste0(ind[c(2,4)], collapse="_"), " - m", paste0(ind[c(1,4)], collapse="_"), " * m", paste0(ind[c(2,3)], collapse="_"))
+  } else {
+    # Need to sum over partitions 
+    result <- "" 
+    for (partition in partitions::listParts(k)) {
+      # Only partitions where each set has at least two elements
+      if (all(sapply(partition, length)>1)) {
+        l <- length(partition)
+        coeff <- (-1)^(l-1) * factorial(l-1)
+        coeff <- if (coeff > 0) paste("+", coeff) else paste0("+ (", coeff, ")")
+        moments <- sapply(partition, function(set) paste0(ind[set], collapse = "_"))
+        result <- paste0(result, " ", coeff, paste0(" * m", moments, collapse = ""))
+      }
+    }
+    # Remove leading " + "
+    result <- substring(result, 4, nchar(result))
+  }
+  return(result)
+} 

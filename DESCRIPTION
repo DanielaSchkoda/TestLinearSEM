@@ -1,0 +1,27 @@
+Package: TestLinearSEM
+Type: Package
+Title: Goodness-of-fit tests for linear causal models
+Version: 1.0
+Date: 2023-03-17
+Author: Daniela Schkoda
+Maintainer: Daniela Schkoda <daniela.schkoda@tum.de>
+Description: The package provides an implementation of the three statistical tests for the goodness-of-fit of a linear structural causal model as described in the paper ....
+License: GPL (>= 2)
+Imports: 
+    Rcpp (>= 1.0.5),
+    gtools, 
+    wrapr, 
+    steadyICA, 
+    boot, 
+    Rfast,
+    combinat,
+    stats,
+    permutations,
+    calculus,
+    partitions,
+    stringr
+LinkingTo: Rcpp
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

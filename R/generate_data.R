@@ -47,7 +47,7 @@ generate_data_H_0 <- function(n, p, l, noise_distr) {
   }
 }
 
-calculate_eps = function(n, p, distr_eps = c("gamma", "beta", "overlapping_gaussian", "gaussian")) {
+calculate_eps = function(n, p, distr_eps = c("gamma", "beta", "overlapping_gaussian", "gaussian", "uniform")) {
   distr_eps <- match.arg(distr_eps)
   
   if (distr_eps == "gamma") {
@@ -66,6 +66,9 @@ calculate_eps = function(n, p, distr_eps = c("gamma", "beta", "overlapping_gauss
   } else if (distr_eps == "gaussian") {
     sds <- runif(p, 0.5, 2)
     eps <- mapply(function(n, sd) rnorm(n, 0, sd), n, sds)
+  } else if (distr_eps == "uniform") {
+    as <- runif(p, 0.5, 2)
+    eps <- mapply(function(n, a) runif(n, -a, a), n, as)
   }
   return(eps)
 }

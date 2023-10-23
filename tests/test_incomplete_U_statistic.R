@@ -1,6 +1,6 @@
 library(Rcpp)
-source("./R/methods_polynomial_constraints.R")
-sourceCpp("./src/methods_polynomial_constraints.cpp")
+source("./R/Incomplete_U_statistic.R")
+sourceCpp("./src/Incomplete_U_statistic.cpp")
 library(testthat)
 
 test_that("U stat estimates correctly", {

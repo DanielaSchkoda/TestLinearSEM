@@ -1,0 +1,4 @@
+useDynLib(TestLinearSEM, .registration=TRUE)
+importFrom(Rcpp, evalCpp)
+import(wrapr)
+exportPattern("^[[:alpha:]]+")

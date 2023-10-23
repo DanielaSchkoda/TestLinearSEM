@@ -7,7 +7,7 @@ rand_signed_perm <- function(p) {
 }
 
 ICA <- function(X) {
-  # Use dcovICA for p=2 since the function is faster
+  # Use dcovICA for p=2 since the function is faster than steadyICA
   if (ncol(X) == 2) {
     # X %*% whitener approx. Z
     steadyICA::whitener(X) %.>% to(
@@ -38,6 +38,12 @@ independence_stat <- function(epsilon) {
   }
 }
 
+#' dCovICA
+#' 
+#' @param X Matrix of size n x p containing the observed data.
+#' 
+#' @return PVAL, the p-value. 
+#' 
 #' @export
 dCovICA <- function(X) {
   # Initial ICA

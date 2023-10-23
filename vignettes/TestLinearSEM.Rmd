@@ -16,15 +16,15 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 library(wrapr)
-library(MASS)
+#library(MASS)
 library(Rcpp)
 source("../R/CRT_statistic.R")
 sourceCpp("../src/CRT_statistic.cpp")
 source("../R/constraints_to_test.R")
 source("../R/generate_data.R")
-source("../R/methods_polynomial_constraints.R")
+source("../R/Incomplete_U_statistic.R")
 source("../R/dCovICA.R")
-sourceCpp("../src/methods_polynomial_constraints.cpp")
+sourceCpp("../src/Incomplete_U_statistic.cpp")
 
 # library(TestLinearSEM)
 ```
@@ -34,7 +34,7 @@ The package `TestLinearSEM` provides all the statistical tests that are used in 
 ## Two nodes
 
 1.  Generate data\
-    First, we simulate data to fulfill the null hypothesis with number of nodes `p=2` and sample size `n=1000`.
+    First, we simulate data fulfilling the null hypothesis with number of nodes `p=2` and sample size `n=1000`.
 
 ```{r}
 p <- 2 
@@ -47,7 +47,7 @@ data <- generate_data(n, p, l, "gamma", "H_0")
     Next, we define the matrix $M^{(3)}$ and the polynomial $\text{Str}$. Furthermore, we need all size $p+1$ minors of $M^{(3)}$.
 
 ```{r}
-M <- construct_M(p, 3)
+M <- construct_M(p, 2:3)
 all_minors_M <-  calculate_minors(M, p+1) 
 ```
 
@@ -66,12 +66,6 @@ Incomplete $U$-statistic:
 
 ```{r}
 incomplete_U_stat(data, equality_constraints = all_minors_M, ineq_constraints = list(strassen_ineq))$PVAL
-```
-
-Independent statistic:
-
-```{r}
-indep_stat(data, equality_constraints = all_minors_M, ineq_constraints = list(strassen_ineq))$PVAL
 ```
 
 Combination of incomplete $U$-statistic and CRT statistic:
@@ -103,15 +97,11 @@ data <- generate_data(n, p, l, "gamma", "alt_conf", delta = 0.1)
 ```{r}
 p <- 3
 n <- 100
-M <- construct_M(p, 3)
+M <- construct_M(p, 2:3)
 
 data <- generate_data(n, p, l, "gamma", "H_0")
 
 CRT(data, M, p)$PVAL
-```
-
-```{r}
-indep_stat(data, equality_constraints = append(all_minors_M, list(Aronhold_invariant)))$PVAL
 ```
 
 ```{r}
@@ -129,12 +119,12 @@ dCovICA(data)$PVAL
 ```{r}
 p <- 4
 n <- 100
-M <- construct_M(p, 3)
-A_T <- construct_A_T(p)
+M <- construct_M(p, 2:3)
+Y_T <- construct_Y_T(p, 3)
 a <- floor((p-1)/2)
-rank_A_T <- p * choose(p-1, a)
+rank_Y_T <- p * choose(p-1, a)
 
 data <- generate_data(n, p, l, "gamma", "H_0")
 
-combine_pvalues(CRT(data, M, p)$PVAL, CRT(data, A_T, rank_A_T)$PVAL)
+combine_pvalues(CRT(data, M, p)$PVAL, CRT(data, Y_T, rank_Y_T)$PVAL)
 ```

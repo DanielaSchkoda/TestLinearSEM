@@ -36,7 +36,6 @@ double estimateMoment(NumericVector moment, NumericMatrix X) {
     NumericVector product = Rcpp::NumericVector(n, 1.0);
     for (int k = 0; k < moment.size(); k++) {
       // -1 since C++ indices start from 0
-      //Rcout << mean(X(_,moment[k] - 1));
       product = product * X(_,moment[k] - 1);
     };
     return(mean(product));
@@ -105,28 +104,21 @@ double estimateCovBtwMoments(List moment_1, List moment_2, NumericMatrix X) {
 // }
 
 // [[Rcpp::export]]
-NumericMatrix estimate_Pi(Rcpp::List Pi, NumericMatrix X) {
-  int numCols = Pi.size();
-  Rcpp::List firstCol = as<List>(Pi[0]);
-  int numRows = firstCol.size();
-
-  NumericMatrix result(numRows, numCols);
-      
-  for (int j = 0; j < numCols; j++) {
-    Rcpp::List col = as<List>(Pi[j]);
-    for (int i = 0; i < numRows; i++) {
-      Rcpp::List entry = as<List>(col[i]);
-      double coefficient = Rcpp::as<double>(entry["coeff"]);
-      Rcpp::NumericVector moment = Rcpp::as<Rcpp::NumericVector>(entry["mom"]);
-      result(i, j) = coefficient * estimateMoment(moment, X);
-    }
+NumericVector estimate_Moments(Rcpp::List Pi, NumericMatrix X) {
+  int numMoms = Pi.size();
+  NumericVector result(numMoms);
+  for (int i = 0; i < numMoms; i++) {
+    Rcpp::List entry = as<List>(Pi[i]);
+    double coefficient = Rcpp::as<double>(entry["coeff"]);
+    Rcpp::NumericVector moment = Rcpp::as<Rcpp::NumericVector>(entry["mom"]);
+    result[i] = coefficient * estimateMoment(moment, X);
   }
   return(result);
 }
 
 
 // [[Rcpp::export]]
-NumericMatrix estimate_W(List Pi_vectorized, NumericMatrix X) {
+NumericMatrix estimate_Covs(List Pi_vectorized, NumericMatrix X) {
   int length = Pi_vectorized.size();
 
   NumericMatrix W(length, length);
@@ -140,9 +132,6 @@ NumericMatrix estimate_W(List Pi_vectorized, NumericMatrix X) {
   
   return W;
 }
-
-
-
 
 
 
