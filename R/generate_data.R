@@ -1,4 +1,4 @@
-#' Generates data under the null hypothetis and different alternatives
+#' Generates data under the null hypothesis and different alternatives
 #' 
 #' @param n Integer, sample size.
 #' @param p Integer, number of nodes.

@@ -16,17 +16,8 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 library(wrapr)
-#library(MASS)
 library(Rcpp)
-source("../R/CRT_statistic.R")
-sourceCpp("../src/CRT_statistic.cpp")
-source("../R/constraints_to_test.R")
-source("../R/generate_data.R")
-source("../R/Incomplete_U_statistic.R")
-source("../R/dCovICA.R")
-sourceCpp("../src/Incomplete_U_statistic.cpp")
-
-# library(TestLinearSEM)
+library(TestLinearSEM)
 ```
 
 The package `TestLinearSEM` provides all the statistical tests that are used in the paper to test the null hypothesis if a distribution follows a linear structural equation model. For the details of the tests, see the paper. Here, you can find examples for using this package to apply the tests.

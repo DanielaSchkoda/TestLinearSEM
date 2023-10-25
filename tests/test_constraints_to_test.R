@@ -1,5 +1,5 @@
-source("./R/constraints_to_test.R")
-source("./R/CRT_statistic.R")
+#source("./R/constraints_to_test.R")
+#source("./R/CRT_statistic.R")
 library(testthat)
 library(Matrix)
 

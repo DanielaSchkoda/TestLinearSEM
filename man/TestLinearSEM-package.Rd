@@ -3,32 +3,16 @@
 \alias{TestLinearSEM}
 \docType{package}
 \title{
-  A short title line describing what the package does
+  Goodness-of-fit tests for linear non-Gaussian structural equation model.
 }
 \description{
-  A more detailed description of what the package does. A length
-  of about one to five lines is recommended.
+  This package provides the three different options to test the goodness-of-fit of a linear structural equation model as described in the paper Goodness-of-fit tests for linear non-Gaussian structural equation model. 
 }
 \details{
-  This section should provide a more detailed overview of how to use the
-  package, including the most important functions.
+  Examples on how to use the package can be found in the vignette.
 }
 \author{
-Your Name, email optional.
+Daniela Schkoda
 
-Maintainer: Your Name <your@email.com>
-}
-\references{
-  This optional section can contain literature or other references for
-  background information.
-}
-\keyword{ package }
-\seealso{
-  Optional links to other man pages
-}
-\examples{
-  \dontrun{
-     ## Optional simple examples of the most important functions
-     ## These can be in \dontrun{} and \donttest{} blocks.   
-  }
+Maintainer: Daniela Schkoda <daniela.schkoda@tum.de>
 }

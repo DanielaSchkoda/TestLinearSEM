@@ -3,9 +3,9 @@ library(testthat)
 library(wrapr)
 library(MASS)
 library(Rcpp)
-source("./R/CRT_statistic.R")
-sourceCpp("./src/CRT_statistic.cpp")
-source("./R/constraints_to_test.R")
+#source("./R/CRT_statistic.R")
+#sourceCpp("./src/CRT_statistic.cpp")
+#source("./R/constraints_to_test.R")
 
 test_that("Matrix is estimated correctly", {
     n <- 10000000

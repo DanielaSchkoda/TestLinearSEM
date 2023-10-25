@@ -59,7 +59,7 @@ construct_flattening_matrix <- function(p, k) {
   return(fl)
 }
 
-# Calculate all minors of a specific size of a matrix
+#' Calculate all minors of a specific size of a matrix
 #' 
 #' @param A A matrix, whose minors to compute. The format of the entries of the matrix needs to be "m1_2_2"
 #' @param size size of the minors
@@ -104,8 +104,8 @@ calculate_determinant <- function(A) {
   return(det)
 }
 
-# Constraints stemming from lower symmetric tensor rank:
-# p = 2
+
+# Strassen inequality
 # - Strassen inequality since U-stat tests for ineq <= 0.
 # A polynomial is represented as list of lists, where each inner list represents one summand of the ploynomial.
 # The entry "moms" is a list where each entry corresponds to one factor and contains all the indices of the 
@@ -118,8 +118,7 @@ strassen_ineq <- list(
   list(coef=6, moms = list(c(1, 1, 1), c(1, 1, 2), c(1, 2, 2), c(2, 2, 2)))
 )
 
-
-# p = 3
+# Aronhold invariant
 Aronhold_invariant <- list(
   list(coef=-1, moms = list(c(1, 2, 3), c(1, 2, 3), c(1, 2, 3), c(1, 2, 3))), 
   list(coef=-1, moms = list(c(1, 1, 2), c(1, 1, 2), c(2, 3, 3), c(2, 3, 3))), 
@@ -147,8 +146,6 @@ Aronhold_invariant <- list(
   list(coef=-3, moms = list(c(1, 1, 2), c(1, 2, 3), c(1, 3, 3), c(2, 2, 3))), 
   list(coef=-3, moms = list(c(1, 1, 3), c(1, 2, 2), c(1, 2, 3), c(2, 3, 3)))
 )
-
-# larger p
 
 #' Constructs Young flattening Y_T
 #' 
